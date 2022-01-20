@@ -5,6 +5,10 @@ from sqlparse.tokens import Keyword
 from sql_metadata import Parser
 from utils.authentication import authenticate_tableau, Environment
 from utils.helpers import *
+from utils.tableau_file_helpers import \
+    convert_tableau_file_to_xml, \
+    delete_tmp_files_of_type, \
+    unzip_packaged_tableau_file
 
 
 def parse_tableau():
@@ -420,5 +424,3 @@ def validate_parenthesis(query_string):
 
 if __name__ == "__main__":
     parse_tableau()
-
-
