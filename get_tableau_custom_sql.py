@@ -11,14 +11,13 @@ from utils.tableau_file_helpers import \
     unzip_packaged_tableau_file
 
 
-def parse_tableau():
+def get_tableau_custom_sql():
     # Tableau Authentication
     AUTHENTICATION, SERVER = authenticate_tableau(Environment.PROD)
 
     # Initialize dictionaries to store outputs
-    metadata_dict = dict()
     parsed_data_source_dict = dict()
-    connections_list = dict()
+    connections_dict = dict()
 
     # Log in to Tableau Server and query all Data Sources on Server
     with SERVER.auth.sign_in_with_personal_access_token(AUTHENTICATION):
@@ -41,7 +40,7 @@ def parse_tableau():
                     'connection_id': connection.id
                 }
 
-                connections_list[datasource.id] = connection_dict
+                connections_dict[datasource.id] = connection_dict
 
         # Download each Datasource that is NOT a text file, extract the .tds files, and return paths to each .tds.
         datasource_path_dict = download_data_sources(SERVER, all_data_sources)
@@ -53,7 +52,7 @@ def parse_tableau():
             root = tree.getroot()
 
             # Get human-readable name of datasource
-            ds_name = connections_list.get(ds_id).get('datasource_name')
+            ds_name = connections_dict.get(ds_id).get('datasource_name')
 
             # Connection and Relation properties of data source xml
             connections = [c for c in root.iter('connection')]
@@ -423,4 +422,4 @@ def validate_parenthesis(query_string):
 
 
 if __name__ == "__main__":
-    parse_tableau()
+    get_tableau_custom_sql()
