@@ -28,3 +28,8 @@ def denormalize_json(nested_dict):
                 nested_dicts[key + '.' + nested_key] = nested_dict.get(key).get(nested_key)
 
     return {**nested_dicts, **flat_dict}
+
+
+#
+# Tableau Metadata Dict Helpers
+#

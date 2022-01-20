@@ -1,3 +1,4 @@
+import json
 import os
 from collections import defaultdict, deque
 
@@ -128,3 +129,149 @@ def recurse_nodes(nodes=None, node_depth=None, depth=None):
         )
 
     return node_depth
+
+
+#
+# TSC Metadata Dict Helpers
+#
+def get_tableau_metadata_dict(auth, server):
+    #
+    # Get Each Tableau Server Object
+    #
+    project_dict = get_projects(auth, server)
+    wb_dict = get_workbooks(auth, server)
+    ds_dict = get_datasources(auth, server)
+
+    #
+    # Combine Tableau Server Object Metadata
+    #
+    meta_dict = combine_object_metadata(project_dict, wb_dict, ds_dict)
+
+    # Write metadata to json file
+    with open('../tableau_metadata.json', 'w') as f:
+        json.dump(meta_dict, f)
+
+    return meta_dict
+
+
+def combine_object_metadata(projects, workbooks, datasources):
+    repo_paths_by_last = projects.get('repo_paths_by_last')
+
+    id_name_map = {
+        **projects.get('id_name_map'),
+        **workbooks.get('id_name_map'),
+        **datasources.get('id_name_map')
+    }
+
+    child_parent_dict = {
+        **projects.get('child_parent_dict'),
+        **workbooks.get('child_parent_dict'),
+        **datasources.get('child_parent_dict')
+    }
+
+    return dict(
+        repo_paths_by_last=repo_paths_by_last,
+        id_name_map=id_name_map,
+        child_parent_dict=child_parent_dict
+    )
+
+
+def get_datasources(tsc_auth, tsc_server):
+
+    # Log in to Tableau tsc_server and query all Data Sources on tsc_server
+    with tsc_server.auth.sign_in_with_personal_access_token(tsc_auth):
+        all_datasources, pagination_item = tsc_server.datasources.get()
+        print('There are {} datasources on site...'.format(pagination_item.total_available))
+
+    # Get all Data Source Metadata
+    ds_metadata_dict = get_tsc_obj_metadata(all_datasources)
+
+    # Get Data Source ID to Project Name key value dict
+    id_name_map = get_id_name_map(all_datasources)
+
+    # Get list of tuples of each Data Source ID and its Parent's ID and sort by parent
+    pairs = get_parent_child_pairs(all_datasources, 'project_id')
+
+    # Get all Parent Nodes and their Children as a list
+    nodes, child_parent_dict = get_parent_nodes(pairs)
+
+    return dict(
+        datasource_metadata=ds_metadata_dict,
+        id_name_map=id_name_map,
+        pairs=pairs,
+        nodes=nodes,
+        child_parent_dict=child_parent_dict
+    )
+
+
+def get_projects(tsc_auth, tsc_server):
+
+    # Log in to Tableau Server and get count of Workbooks
+    with tsc_server.auth.sign_in_with_personal_access_token(tsc_auth):
+        all_projects, pagination_item = tsc_server.projects.get()
+        print('There are {} projects on site...'.format(pagination_item.total_available))
+
+    # Get Project ID to Project Name key value dict
+    id_name_map = get_id_name_map(all_projects)
+
+    # Get list of tuples of each Project ID and its Parent's ID and sort by parent
+    pairs = get_parent_child_pairs(all_projects, 'parent_id')
+
+    # Get all Parent Nodes and their Children as a list
+    nodes, child_parent_dict = get_parent_nodes(pairs)
+
+    # Get depth of nodes in directory tree
+    root_depth = 0
+    root_depth_list = list([nodes.get('root')])
+    nodes.pop('root')
+
+    # List of lists where the index represents the node depth level in the directory
+    node_depth_list = recurse_nodes(nodes=nodes, node_depth=root_depth_list, depth=root_depth)
+
+    # List of project paths as project IDs
+    repo_paths_list = build_repo_paths(depth_list=node_depth_list, pairs=child_parent_dict)
+
+    # List of human-readable project paths
+    readable_paths_list = make_readable(repo_paths_list, id_name_map)
+    repo_paths_by_last = get_path_by_last(repo_paths_list)
+
+    # Create empty directories
+    make_directories(readable_paths_list)
+
+    return dict(
+        id_name_map=id_name_map,
+        pairs=pairs,
+        nodes=nodes,
+        child_parent_dict=child_parent_dict,
+        readable_paths_list=readable_paths_list,
+        repo_paths_list=repo_paths_list,
+        repo_paths_by_last=repo_paths_by_last
+    )
+
+
+def get_workbooks(tsc_auth, tsc_server):
+
+    # Log in to Tableau tsc_server and query all Workbooks on tsc_server
+    with tsc_server.auth.sign_in_with_personal_access_token(tsc_auth):
+        all_workbooks, pagination_item = tsc_server.workbooks.get()
+        print('There are {} workbooks on site...'.format(pagination_item.total_available))
+
+    # Get all Workbook Metadata
+    wb_metadata_dict = get_tsc_obj_metadata(all_workbooks)
+
+    # Get Workbook ID to Project Name key value dict
+    id_name_map = get_id_name_map(all_workbooks)
+
+    # Get list of tuples of each Workbook ID and its Parent's ID and sort by parent
+    pairs = get_parent_child_pairs(all_workbooks, 'project_id')
+
+    # Get all Parent Nodes and their Children as a list
+    nodes, child_parent_dict = get_parent_nodes(pairs)
+
+    return dict(
+        workbook_metadata=wb_metadata_dict,
+        id_name_map=id_name_map,
+        pairs=pairs,
+        nodes=nodes,
+        child_parent_dict=child_parent_dict
+    )
