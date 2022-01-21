@@ -8,7 +8,7 @@ def get_tableau_workbook_datasources():
     AUTHENTICATION, SERVER = authenticate_tableau(Environment.PROD)
 
     # Initialize dictionaries to store outputs
-    connections_dict = dict()
+    datasources_store = list()
 
     # Log in to Tableau Server and query all Data Sources on Server
     with SERVER.auth.sign_in_with_personal_access_token(AUTHENTICATION):
@@ -21,31 +21,30 @@ def get_tableau_workbook_datasources():
             # Populate connection information about each workbook
             SERVER.workbooks.populate_connections(workbook)
 
-            datasources_list = list()
             for connection in workbook.connections:
-                datasources_list.append(connection.datasource_name)
+                datasources_store.append(
+                    {
+                        'workbook_name': workbook.name,
+                        'workbook_url': workbook.webpage_url,
+                        'workbook_content_url': workbook.content_url,
+                        'datasource_name': connection.datasource_name
+                    }
+                )
 
-            connections_dict[workbook.name] = {
-                'workbook_name': workbook.name,
-                'workbook_url': workbook.webpage_url,
-                'workbook_content_url': workbook.content_url,
-                'datasources': datasources_list,
-            }
-
-    pprint.pprint(connections_dict)
+    pprint.pprint(datasources_store)
 
     #
     # OUTPUT: CSV
     #
     data = list()
-    for _, wb in connections_dict.items():
-        data.append(list(wb.values()))
+    for row in datasources_store:
+        data.append(list(row.values()))
 
     columns = [
         'workbook_name',
         'workbook_url',
         'workbook_content_url',
-        'datasources'
+        'datasource_name'
     ]
 
     df = pd.DataFrame(data, columns=columns)
