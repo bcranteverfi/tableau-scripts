@@ -83,8 +83,8 @@ class TableauMetadataQueries:
 
     WORKBOOK_FIELDS = '''
     query workbook_fields {
-        # workbooks (filter: { projectNameWithin: ["BRLS", "Live", "TRLS", "URLS"] } ) {
-        # workbooks (filter: { projectNameWithin: ["URLS"] } ) {
+        # Example filter usage:
+        # workbooks (filter: { projectNameWithin: ["Foo", "Bar", "Bat"] } ) {
         workbooks {
             __typename
             name
@@ -185,4 +185,3 @@ class TableauMetadataQueries:
         }
     }    
     '''
-
