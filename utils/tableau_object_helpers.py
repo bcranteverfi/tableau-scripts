@@ -1,7 +1,7 @@
 import json
 import os
 from collections import defaultdict, deque
-
+import tableauserverclient as TSC
 
 #
 # TSC Object Helpers
@@ -275,3 +275,66 @@ def get_workbooks(tsc_auth, tsc_server):
         nodes=nodes,
         child_parent_dict=child_parent_dict
     )
+
+
+def get_users_by_name(tsc_auth:TSC.TableauAuth, tsc_server:TSC.Server, user_name:str)->list:
+  """
+    Return list of users from server with matching username
+
+    tsc_auth: TSC Authentication to server
+    tsc_server: TSC Server to be searched
+    user_name: Tableau username for User
+
+  """
+  
+    # Log in to Tableau Server and query all Data Sources on Server
+  with tsc_server.auth.sign_in_with_personal_access_token(tsc_auth):
+
+# get Tableau user
+    req_options_user = TSC.RequestOptions() 
+    req_options_user.filter.add(TSC.Filter(
+      TSC.RequestOptions.Field.Name,
+      TSC.RequestOptions.Operator.Equals,
+      user_name
+      ))
+
+    users, pagination_item = tsc_server.users.get(req_options_user)
+    
+    return users 
+
+def get_groups_by_name(tsc_auth:TSC.TableauAuth, tsc_server:TSC.Server, group_name:str)->list:
+  """
+   Return list of groups from server with matching Group Name
+    
+    tsc_auth: TSC Authentication to server
+    tsc_server: TSC Server to be searched
+    group_name: Name of group to search for
+  """
+  
+    # Log in to Tableau Server and query all Data Sources on Server
+  with tsc_server.auth.sign_in_with_personal_access_token(tsc_auth):
+    req_options_group = TSC.RequestOptions()
+    req_options_group.filter.add(TSC.Filter(
+        TSC.RequestOptions.Field.Name,
+        TSC.RequestOptions.Operator.Equals,
+        group_name
+      ))
+    groups, pagination_item = tsc_server.groups.get(req_options_group)
+  return groups 
+
+
+
+def add_user_to_group(tsc_auth: TSC.TableauAuth, tsc_server: TSC.Server, tsc_user: TSC.UserItem, tsc_group: TSC.GroupItem):
+
+  """
+  Add a user with matching name to group with matching name 
+  """
+  
+  try:
+      with tsc_server.auth.sign_in_with_personal_access_token(tsc_auth): 
+        print(f'Adding {tsc_user.name} to {tsc_group.name}')
+        tsc_server.groups.add_user(tsc_group, tsc_user.id)
+  except TSC.server.endpoint.exceptions.ServerResponseError as err:
+    print(f'Error: {err.summary}:  {err.detail}')
+  
+  return tsc_server 
