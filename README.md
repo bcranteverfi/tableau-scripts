@@ -1,5 +1,5 @@
 # Tableau Scripts
-A series of helper functions and utilities for data professionals who frequently interact with Tableau.
+A series of helper functions and utilities for data professionals who frequently interact with Tableau APIs and the Tableau Server Client Python library (TSC).
 
 # Setup
 `$ git clone {repo_url}` \
